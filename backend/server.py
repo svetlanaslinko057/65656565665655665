@@ -1,89 +1,134 @@
-from fastapi import FastAPI, APIRouter
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
-import uuid
-from datetime import datetime, timezone
+"""
+BlockView Backend - Supervisor Compatibility Layer
 
+❌ Python backend REMOVED (January 2025)
+✅ TypeScript backend is the ONLY execution layer
+
+This file exists ONLY for supervisor/uvicorn compatibility.
+It launches TypeScript on port 8002 and proxies requests from 8001.
+
+ALL business logic is in TypeScript:
+- Bootstrap Worker, Resolver, Indexers, Attribution, ENS, WebSocket
+"""
+
+import os
+import subprocess
+import asyncio
+import atexit
+import httpx
+from pathlib import Path
+from fastapi import FastAPI, Request, Response, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+import websockets
 
 ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+TS_PORT = 8002
+TS_URL = f"http://127.0.0.1:{TS_PORT}"
 
-# MongoDB connection
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+ts_process = None
+http_client = None
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
-api_router = APIRouter(prefix="/api")
-
-
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
-
-# Add your routes to the router instead of directly to app
-@api_router.get("/")
-async def root():
-    return {"message": "Hello World"}
-
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
-
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
-
-# Include the router in the main app
-app.include_router(api_router)
+app = FastAPI(title="BlockView Proxy", docs_url=None, redoc_url=None)
 
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+def cleanup():
+    global ts_process
+    if ts_process:
+        ts_process.terminate()
+        try:
+            ts_process.wait(timeout=5)
+        except:
+            ts_process.kill()
+
+atexit.register(cleanup)
+
+@app.on_event("startup")
+async def startup():
+    global ts_process, http_client
+    
+    env = os.environ.copy()
+    env['PORT'] = str(TS_PORT)
+    env['MONGODB_URI'] = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/blockview')
+    env['NODE_ENV'] = os.environ.get('NODE_ENV', 'development')
+    env['LOG_LEVEL'] = os.environ.get('LOG_LEVEL', 'info')
+    env['WS_ENABLED'] = os.environ.get('WS_ENABLED', 'true')
+    env['CORS_ORIGINS'] = os.environ.get('CORS_ORIGINS', '*')
+    env['INDEXER_ENABLED'] = os.environ.get('INDEXER_ENABLED', 'false')
+    
+    if os.environ.get('INFURA_RPC_URL'):
+        env['INFURA_RPC_URL'] = os.environ.get('INFURA_RPC_URL')
+    
+    tsx = str(ROOT_DIR / 'node_modules' / '.bin' / 'tsx')
+    server = str(ROOT_DIR / 'src' / 'server.ts')
+    
+    print("=" * 60)
+    print("BlockView Backend")
+    print("❌ Python logic REMOVED — this is only a proxy")
+    print("✅ TypeScript is the ONLY execution layer")
+    print("=" * 60)
+    
+    ts_process = subprocess.Popen([tsx, server], cwd=str(ROOT_DIR), env=env)
+    http_client = httpx.AsyncClient(timeout=60.0)
+    await asyncio.sleep(3)
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown():
+    global http_client
+    cleanup()
+    if http_client:
+        await http_client.aclose()
+
+# Proxy all API requests to TypeScript
+@app.api_route("/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+async def proxy(request: Request, path: str):
+    url = f"{TS_URL}/{path}"
+    if request.url.query:
+        url += f"?{request.url.query}"
+    
+    body = await request.body()
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ('host', 'content-length')}
+    
+    try:
+        resp = await http_client.request(
+            method=request.method,
+            url=url,
+            content=body or None,
+            headers=headers,
+        )
+        return Response(
+            content=resp.content,
+            status_code=resp.status_code,
+            headers={k: v for k, v in resp.headers.items() if k.lower() not in ('transfer-encoding', 'connection')},
+        )
+    except httpx.ConnectError:
+        return JSONResponse(status_code=503, content={"error": "Backend starting..."})
+
+# WebSocket proxy
+@app.websocket("/ws")
+async def ws_proxy(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        async with websockets.connect(f"ws://127.0.0.1:{TS_PORT}/ws") as ts_ws:
+            async def to_client():
+                async for msg in ts_ws:
+                    await websocket.send_text(msg)
+            async def to_backend():
+                while True:
+                    data = await websocket.receive_text()
+                    await ts_ws.send(data)
+            await asyncio.gather(to_client(), to_backend(), return_exceptions=True)
+    except:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass

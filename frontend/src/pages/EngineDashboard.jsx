@@ -532,9 +532,9 @@ export default function EngineDashboard() {
     
     try {
       const [kpiRes, shadowRes, decisionsRes] = await Promise.all([
-        api.get(`/engine/kpi?days=${period}`),
-        api.get(`/engine/shadow/kpi?days=${period}`),
-        api.get('/engine/decisions?limit=100'),
+        api.get(`/api/engine/kpi?days=${period}`),
+        api.get(`/api/engine/shadow/kpi?days=${period}`),
+        api.get('/api/engine/decisions?limit=100'),
       ]);
 
       if (kpiRes.data.ok) setKpi(kpiRes.data.data);

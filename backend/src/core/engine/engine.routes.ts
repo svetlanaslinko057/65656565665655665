@@ -1,13 +1,18 @@
 /**
- * Engine Routes (Sprint 4 → v1.1)
+ * Engine Routes (Sprint 4 → v1.1 → v2)
  * 
- * API endpoints for Engine v1.1
+ * API endpoints for Engine v1.1 + KPI + ML
  * 
  * v1.1 Changes:
  * - Stricter thresholds
  * - Penalty weights
  * - Conflict detection
  * - Better explainability
+ * 
+ * v2 Additions:
+ * - KPI endpoints
+ * - Feature extraction
+ * - ML scoring (disabled by default)
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { buildEngineInput, buildEngineInputForActor } from './engine_input.service.js';
@@ -16,6 +21,15 @@ import { generateDecisionV1_1, ENGINE_CONFIG } from './engine_decision_v1_1.serv
 import { EngineDecisionModel } from './engine_decision.model.js';
 import { parseWindow, TimeWindow } from '../common/window.service.js';
 import { buildEnvelope, buildErrorEnvelope } from '../common/analysis_envelope.js';
+import {
+  calculateFullKPI,
+  calculateDistributionKPI,
+  calculateCoverageKPI,
+  calculateStabilityKPI,
+  KPI_THRESHOLDS,
+} from './engine_kpi.service.js';
+import { extractFeatures, getFeatureNames } from './engine_feature_extractor.js';
+import { calculateMLScoring, getMLConfig, setMLEnabled } from './engine_ml_scoring.js';
 
 // Feature flag for v1.1
 const USE_ENGINE_V1_1 = true;

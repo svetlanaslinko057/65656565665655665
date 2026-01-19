@@ -31,6 +31,7 @@ const ActorsGraphPage = lazy(() => import("./pages/ActorsGraphPage"));
 const ActorDetailPage = lazy(() => import("./pages/ActorDetailPage"));
 const CorrelationPage = lazy(() => import("./pages/CorrelationPage"));
 const EnginePage = lazy(() => import("./pages/EnginePage"));
+const EngineDashboard = lazy(() => import("./pages/EngineDashboard"));
 
 // Detail pages (lazy loaded - less frequently accessed)
 const TokenDetail = lazy(() => import("./pages/TokenDetail"));

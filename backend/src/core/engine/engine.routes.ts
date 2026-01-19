@@ -330,5 +330,150 @@ export async function engineRoutes(app: FastifyInstance): Promise<void> {
     };
   });
   
-  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'})`);
+  // ============ KPI ENDPOINTS ============
+  
+  /**
+   * GET /api/engine/kpi
+   * Get full KPI summary
+   */
+  app.get('/engine/kpi', async (request: FastifyRequest) => {
+    const query = request.query as { days?: string };
+    const days = parseInt(query.days || '7');
+    
+    try {
+      const kpi = await calculateFullKPI(days);
+      return {
+        ok: true,
+        data: kpi,
+        thresholds: KPI_THRESHOLDS,
+      };
+    } catch (err: any) {
+      return {
+        ok: false,
+        error: err.message,
+      };
+    }
+  });
+  
+  /**
+   * GET /api/engine/kpi/distribution
+   * Get decision distribution KPI
+   */
+  app.get('/engine/kpi/distribution', async (request: FastifyRequest) => {
+    const query = request.query as { days?: string };
+    const days = parseInt(query.days || '7');
+    
+    const kpi = await calculateDistributionKPI(days);
+    return {
+      ok: true,
+      data: kpi,
+      thresholds: KPI_THRESHOLDS.distribution,
+    };
+  });
+  
+  /**
+   * GET /api/engine/kpi/coverage
+   * Get coverage gating KPI
+   */
+  app.get('/engine/kpi/coverage', async (request: FastifyRequest) => {
+    const query = request.query as { days?: string };
+    const days = parseInt(query.days || '7');
+    
+    const kpi = await calculateCoverageKPI(days);
+    return {
+      ok: true,
+      data: kpi,
+      thresholds: KPI_THRESHOLDS.coverage,
+    };
+  });
+  
+  /**
+   * GET /api/engine/kpi/stability
+   * Get stability KPI
+   */
+  app.get('/engine/kpi/stability', async (request: FastifyRequest) => {
+    const query = request.query as { days?: string };
+    const days = parseInt(query.days || '7');
+    
+    const kpi = await calculateStabilityKPI(days);
+    return {
+      ok: true,
+      data: kpi,
+      thresholds: KPI_THRESHOLDS.stability,
+    };
+  });
+  
+  // ============ ML ENDPOINTS ============
+  
+  /**
+   * GET /api/engine/ml/config
+   * Get ML configuration and status
+   */
+  app.get('/engine/ml/config', async () => {
+    return {
+      ok: true,
+      data: getMLConfig(),
+    };
+  });
+  
+  /**
+   * POST /api/engine/ml/toggle
+   * Toggle ML (admin only)
+   */
+  app.post('/engine/ml/toggle', async (request: FastifyRequest) => {
+    const body = request.body as { enabled: boolean };
+    
+    setMLEnabled(body.enabled);
+    
+    return {
+      ok: true,
+      data: {
+        mlEnabled: body.enabled,
+        message: body.enabled ? 'ML scoring ENABLED' : 'ML scoring DISABLED (fallback to rules)',
+      },
+    };
+  });
+  
+  /**
+   * GET /api/engine/features
+   * Get feature extraction for debugging
+   */
+  app.get('/engine/features', async (request: FastifyRequest) => {
+    const query = request.query as {
+      asset?: string;
+      actor?: string;
+      window?: string;
+    };
+    
+    const window = parseWindow(query.window, '24h');
+    
+    if (!query.asset && !query.actor) {
+      return { ok: false, error: 'Either asset or actor parameter required' };
+    }
+    
+    try {
+      let input;
+      if (query.actor) {
+        input = await buildEngineInputForActor(query.actor, window);
+      } else {
+        input = await buildEngineInput(query.asset!, window);
+      }
+      
+      const features = extractFeatures(input);
+      const mlScoring = calculateMLScoring(features);
+      
+      return {
+        ok: true,
+        data: {
+          features,
+          featureNames: getFeatureNames(),
+          mlScoring,
+        },
+      };
+    } catch (err: any) {
+      return { ok: false, error: err.message };
+    }
+  });
+  
+  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'} + KPI + ML)`);
 }

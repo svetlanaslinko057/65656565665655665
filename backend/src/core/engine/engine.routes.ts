@@ -117,6 +117,16 @@ export async function engineRoutes(app: FastifyInstance): Promise<void> {
         ? await generateDecisionV1_1(input)
         : await generateDecision(input);
       
+      // Run shadow comparison (v1.1 vs v2) - does not affect production decision
+      if (SHADOW_CONFIG.enabled) {
+        runShadowComparison(input, {
+          id: decision.id,
+          decision: decision.decision,
+          confidenceBand: decision.confidenceBand,
+          scores: decision.scores,
+        }).catch(err => console.error('[Shadow] Error:', err));
+      }
+      
       return buildEnvelope(decision, {
         interpretation: {
           headline: `${decision.decision} signal based on ${decision.reasoning.primaryContext?.headline || 'observed patterns'}`,

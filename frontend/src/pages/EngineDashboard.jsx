@@ -851,7 +851,11 @@ export default function EngineDashboard() {
         {/* Overall health - v1.05: DATA COLLECTION status */}
         {kpi && (
           <div className="mb-6">
-            <OverallHealth health={kpi.overallHealth} coverage={avgCoverage} />
+            <OverallHealth 
+              health={kpi.overallHealth} 
+              coverage={avgCoverage} 
+              thresholds={engineConfig?.thresholds}
+            />
           </div>
         )}
 
@@ -869,7 +873,7 @@ export default function EngineDashboard() {
           <CoverageGating data={kpi?.coverage} loading={loading} />
           
           {/* Row 2 */}
-          <EvidenceRiskScatter decisions={decisions} loading={loading} />
+          <EvidenceRiskScatter decisions={decisions} loading={loading} thresholds={engineConfig?.thresholds} />
           <StabilityKPI data={kpi?.stability} loading={loading} />
           
           {/* Row 3 - Simulation Controls (NEW) */}
@@ -880,10 +884,10 @@ export default function EngineDashboard() {
         </div>
 
         {/* Engine Info */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <p className="text-sm text-blue-700">
+        <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <p className="text-sm text-slate-600">
             <Info className="w-4 h-4 inline mr-1" />
-            <strong>Engine v1.1</strong> | Shadow Mode: Active | ML: Disabled | 
+            <strong>Engine {engineConfig?.version || 'v1.1'}</strong> | Shadow Mode: Active | ML: Disabled | 
             This dashboard shows quality metrics, not trading performance.
           </p>
         </div>

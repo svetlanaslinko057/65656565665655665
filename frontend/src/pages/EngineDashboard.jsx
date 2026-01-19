@@ -214,7 +214,7 @@ function CoverageGating({ data, loading }) {
 }
 
 // ============ EVIDENCE VS RISK SCATTER WITH DECISION GATE OVERLAY ============
-function EvidenceRiskScatter({ decisions, loading }) {
+function EvidenceRiskScatter({ decisions, loading, thresholds }) {
   if (loading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -229,6 +229,12 @@ function EvidenceRiskScatter({ decisions, loading }) {
     );
   }
 
+  // Get thresholds from API or use defaults
+  const evidenceMin = thresholds?.evidence?.softZoneMax || 65;
+  const evidenceHard = thresholds?.evidence?.minForAnyDecision || 50;
+  const riskMax = thresholds?.risk?.highRiskZone || 60;
+  const riskHardCap = thresholds?.risk?.hardCap || 75;
+
   // Build scatter data
   const scatterData = (decisions || []).map(d => ({
     evidence: d.scores?.evidence || 0,
@@ -236,11 +242,11 @@ function EvidenceRiskScatter({ decisions, loading }) {
     decision: d.decision,
   }));
 
-  // Group by zones
+  // Group by zones based on actual thresholds
   const zones = {
-    safe: scatterData.filter(d => d.evidence >= 65 && d.risk < 60),
-    risky: scatterData.filter(d => d.risk >= 60),
-    weak: scatterData.filter(d => d.evidence < 65 && d.risk < 60),
+    safe: scatterData.filter(d => d.evidence >= evidenceMin && d.risk < riskMax),
+    risky: scatterData.filter(d => d.risk >= riskMax),
+    weak: scatterData.filter(d => d.evidence < evidenceMin && d.risk < riskMax),
   };
 
   return (
@@ -254,46 +260,63 @@ function EvidenceRiskScatter({ decisions, loading }) {
       </div>
 
       {/* Simple visualization with Decision Gate Overlay */}
-      <div className="relative h-48 bg-gray-50 rounded-lg overflow-hidden">
+      <div className="relative h-52 bg-slate-50 rounded-lg overflow-hidden">
         {/* Grid */}
-        <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
-          {[...Array(16)].map((_, i) => (
-            <div key={i} className="border border-gray-100" />
+        <div className="absolute inset-0 grid grid-cols-5 grid-rows-5">
+          {[...Array(25)].map((_, i) => (
+            <div key={i} className="border border-slate-100" />
           ))}
         </div>
         
         {/* DECISION GATE OVERLAY - BUY/SELL allowed zone */}
-        {/* BUY/SELL allowed: Evidence >= 65, Risk < 60, Coverage >= 60 */}
+        {/* Based on actual thresholds from API */}
         <div 
-          className="absolute bg-emerald-100/40 border-2 border-emerald-400 border-dashed"
+          className="absolute bg-teal-100/50 border-2 border-teal-500 border-dashed rounded"
           style={{
-            left: '65%',
-            bottom: '40%',
-            width: '35%',
-            height: '60%',
+            left: `${evidenceMin}%`,
+            bottom: `${100 - riskMax}%`,
+            width: `${100 - evidenceMin}%`,
+            height: `${riskMax}%`,
           }}
-          title="BUY/SELL Allowed Zone: Evidence ≥65, Risk <60"
-        />
+          title={`Decision Gate: Evidence ≥${evidenceMin}, Risk <${riskMax}`}
+        >
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-xs font-medium text-teal-700 bg-teal-100 px-2 py-1 rounded">
+              Decision Gate
+            </span>
+          </div>
+        </div>
         
         {/* AUTO-NEUTRAL zones overlay */}
-        {/* High Risk zone (Risk >= 60) - auto NEUTRAL */}
+        {/* High Risk zone (Risk >= hardCap) - auto NEUTRAL */}
         <div 
-          className="absolute bg-red-100/30"
+          className="absolute bg-red-100/40"
           style={{
             left: '0',
             top: '0',
             width: '100%',
-            height: '40%',
+            height: `${100 - riskHardCap}%`,
           }}
         />
         
-        {/* Low Evidence zone (Evidence < 50) - auto NEUTRAL */}
+        {/* Moderate Risk zone (Risk >= riskMax) - conditional */}
         <div 
-          className="absolute bg-amber-100/30"
+          className="absolute bg-orange-100/30"
+          style={{
+            left: '0',
+            top: `${100 - riskHardCap}%`,
+            width: '100%',
+            height: `${riskHardCap - riskMax}%`,
+          }}
+        />
+        
+        {/* Low Evidence zone (Evidence < hardMin) - auto NEUTRAL */}
+        <div 
+          className="absolute bg-amber-100/40"
           style={{
             left: '0',
             bottom: '0',
-            width: '50%',
+            width: `${evidenceHard}%`,
             height: '100%',
           }}
         />

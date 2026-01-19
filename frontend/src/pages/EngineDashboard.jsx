@@ -463,6 +463,9 @@ function StabilityKPI({ data, loading }) {
             </div>
             <p className="text-xl font-semibold">{medianDecisionLifespanHours.toFixed(1)}h</p>
             <p className="text-xs text-gray-500">Target: ≥4h</p>
+            {isLifespanZero && (
+              <p className="text-xs text-slate-400 mt-1 italic">No BUY/SELL decisions yet</p>
+            )}
           </div>
           
           {/* Tooltip for zero lifespan */}

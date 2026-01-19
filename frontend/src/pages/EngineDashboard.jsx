@@ -783,6 +783,7 @@ export default function EngineDashboard() {
       if (kpiRes.data.ok) setKpi(kpiRes.data.data);
       if (shadowRes.data.ok) setShadowKpi(shadowRes.data.data);
       if (decisionsRes.data.ok) setDecisions(decisionsRes.data.data.decisions || []);
+      if (configRes.data.ok) setEngineConfig(configRes.data.data);
     } catch (err) {
       setError(err.message);
     } finally {

@@ -37,6 +37,11 @@ import {
   setShadowEnabled,
   SHADOW_CONFIG 
 } from './engine_shadow.service.js';
+import {
+  runHistoricalReplay,
+  runPerturbationTest,
+  runMonteCarloTest,
+} from './engine_simulation.service.js';
 
 // Feature flag for v1.1
 const USE_ENGINE_V1_1 = true;

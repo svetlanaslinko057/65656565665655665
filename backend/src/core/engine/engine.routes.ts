@@ -91,8 +91,10 @@ export async function engineRoutes(app: FastifyInstance): Promise<void> {
         input = await buildEngineInput(body.asset!, window);
       }
       
-      // Generate decision
-      const decision = await generateDecision(input);
+      // Generate decision (v1.1 or v1)
+      const decision = USE_ENGINE_V1_1 
+        ? await generateDecisionV1_1(input)
+        : await generateDecision(input);
       
       return buildEnvelope(decision, {
         interpretation: {

@@ -60,6 +60,7 @@ function App() {
             <Route path="/actors/correlation" element={<CorrelationPage />} />
             <Route path="/actors/:actorId" element={<ActorDetailPage />} />
             <Route path="/engine" element={<EnginePage />} />
+            <Route path="/engine/dashboard" element={<EngineDashboard />} />
             
             {/* Detail Pages */}
             <Route path="/token/:tokenId" element={<TokenDetail />} />

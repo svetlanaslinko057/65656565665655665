@@ -109,8 +109,13 @@ const EngineDecisionSchema = new mongoose.Schema({
   },
   
   // Metadata
-  engineVersion: { type: String, default: 'v1.0' },
+  engineVersion: { type: String, default: 'v1.1' },
   createdAt: { type: Date, default: Date.now, index: true },
+  
+  // v1.1 additions
+  neutralReason: { type: String },
+  conflictsDetected: [String],
+  penaltiesApplied: [String],
   
 }, {
   collection: 'engine_decisions',

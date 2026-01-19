@@ -694,19 +694,48 @@ function SimulationControls({ onRunSimulation }) {
 }
 
 // ============ OVERALL HEALTH BADGE (UPDATED FOR v1.05) ============
-function OverallHealth({ health, coverage }) {
-  // v1.05: Replace "Warning" with "DATA COLLECTION" status for low coverage
-  const isDataCollection = coverage && coverage < 50;
+function OverallHealth({ health, coverage, thresholds }) {
+  // v1.05: Replace "Warning" with "DATA COLLECTION MODE" status
+  const minCoverage = thresholds?.coverage?.normalZone || 60;
+  const isDataCollection = coverage !== undefined && coverage < minCoverage;
   
   if (isDataCollection) {
     return (
-      <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200">
-        <Database className="w-5 h-5 text-blue-600" />
-        <div>
-          <span className="font-semibold text-blue-700">Engine Status: DATA COLLECTION</span>
-          <p className="text-sm text-blue-600 mt-0.5">
-            Coverage below decision threshold ({coverage?.toFixed(0) || 0}% / 60%). Engine operating in protection mode.
-          </p>
+      <div className="rounded-xl bg-slate-50 border border-slate-200 p-5">
+        <div className="flex items-start gap-4">
+          <div className="p-2 bg-slate-100 rounded-lg">
+            <Database className="w-6 h-6 text-slate-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-slate-700">
+              Engine Status: DATA COLLECTION MODE
+            </h3>
+            <p className="text-sm text-slate-500 mt-1">
+              Engine is operating in protection mode while data coverage is below decision thresholds.
+            </p>
+            
+            {/* Dynamic bullet points */}
+            <ul className="mt-3 space-y-2">
+              <li className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                Coverage below minimum decision threshold ({coverage?.toFixed(0) || 0}% / {minCoverage}%)
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                BUY/SELL decisions are temporarily gated
+              </li>
+              <li className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                All decisions default to NEUTRAL by design
+              </li>
+            </ul>
+            
+            {/* Gating status badge */}
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg">
+              <Shield className="w-4 h-4 text-slate-500" />
+              <span className="text-xs font-medium text-slate-600">Decision Gating: ACTIVE</span>
+            </div>
+          </div>
         </div>
       </div>
     );

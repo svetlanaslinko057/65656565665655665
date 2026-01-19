@@ -492,5 +492,56 @@ export async function engineRoutes(app: FastifyInstance): Promise<void> {
     }
   });
   
-  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'} + KPI + ML)`);
+  // ============ SHADOW MODE ENDPOINTS ============
+  
+  /**
+   * GET /api/engine/shadow/config
+   * Get shadow mode configuration
+   */
+  app.get('/engine/shadow/config', async () => {
+    return {
+      ok: true,
+      data: getShadowConfig(),
+    };
+  });
+  
+  /**
+   * POST /api/engine/shadow/toggle
+   * Toggle shadow mode
+   */
+  app.post('/engine/shadow/toggle', async (request: FastifyRequest) => {
+    const body = request.body as { enabled: boolean };
+    
+    setShadowEnabled(body.enabled);
+    
+    return {
+      ok: true,
+      data: {
+        shadowEnabled: body.enabled,
+        message: body.enabled ? 'Shadow mode ENABLED' : 'Shadow mode DISABLED',
+      },
+    };
+  });
+  
+  /**
+   * GET /api/engine/shadow/kpi
+   * Get shadow mode KPIs (v1.1 vs v2 comparison)
+   */
+  app.get('/engine/shadow/kpi', async (request: FastifyRequest) => {
+    const query = request.query as { days?: string };
+    const days = parseInt(query.days || '7');
+    
+    try {
+      const kpis = await calculateShadowKPIs(days);
+      return {
+        ok: true,
+        data: kpis,
+        killConditions: SHADOW_CONFIG.killConditions,
+      };
+    } catch (err: any) {
+      return { ok: false, error: err.message };
+    }
+  });
+  
+  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'} + KPI + ML + Shadow)`);
 }

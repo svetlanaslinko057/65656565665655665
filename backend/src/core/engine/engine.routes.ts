@@ -548,5 +548,69 @@ export async function engineRoutes(app: FastifyInstance): Promise<void> {
     }
   });
   
-  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'} + KPI + ML + Shadow)`);
+  // ============ SIMULATION ENDPOINTS ============
+  
+  /**
+   * POST /api/engine/simulate/replay
+   * Run historical replay simulation
+   */
+  app.post('/engine/simulate/replay', async (request: FastifyRequest) => {
+    const body = request.body as { limit?: number };
+    const limit = body.limit || 50;
+    
+    try {
+      const result = await runHistoricalReplay(limit);
+      return {
+        ok: true,
+        data: result,
+      };
+    } catch (err: any) {
+      return { ok: false, error: err.message };
+    }
+  });
+  
+  /**
+   * POST /api/engine/simulate/perturb
+   * Run perturbation stress test
+   */
+  app.post('/engine/simulate/perturb', async (request: FastifyRequest) => {
+    const body = request.body as { 
+      actor?: string;
+      perturbations?: any[];
+    };
+    
+    try {
+      const result = await runPerturbationTest(
+        body.actor || 'binance',
+        body.perturbations || []
+      );
+      return {
+        ok: true,
+        data: result,
+      };
+    } catch (err: any) {
+      return { ok: false, error: err.message };
+    }
+  });
+  
+  /**
+   * POST /api/engine/simulate/montecarlo
+   * Run Monte Carlo random feature test
+   */
+  app.post('/engine/simulate/montecarlo', async (request: FastifyRequest) => {
+    const body = request.body as { iterations?: number };
+    const iterations = body.iterations || 50;
+    
+    try {
+      const result = await runMonteCarloTest(iterations);
+      return {
+        ok: true,
+        data: result,
+      };
+    } catch (err: any) {
+      return { ok: false, error: err.message };
+    }
+  });
+  
+  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'} + KPI + ML + Shadow + Simulation)`);
 }

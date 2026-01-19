@@ -66,6 +66,12 @@ async def startup():
     if os.environ.get('INFURA_RPC_URL'):
         env['INFURA_RPC_URL'] = os.environ.get('INFURA_RPC_URL')
     
+    if os.environ.get('ANKR_RPC_URL'):
+        env['ANKR_RPC_URL'] = os.environ.get('ANKR_RPC_URL')
+    
+    if os.environ.get('TELEGRAM_BOT_TOKEN'):
+        env['TELEGRAM_BOT_TOKEN'] = os.environ.get('TELEGRAM_BOT_TOKEN')
+    
     tsx = str(ROOT_DIR / 'node_modules' / '.bin' / 'tsx')
     server = str(ROOT_DIR / 'src' / 'server.ts')
     

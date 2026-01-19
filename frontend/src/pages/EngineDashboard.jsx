@@ -323,22 +323,22 @@ function EvidenceRiskScatter({ decisions, loading, thresholds }) {
         
         {/* Zone labels */}
         <div className="absolute top-2 right-2 text-xs text-red-600 bg-red-100 px-2 py-1 rounded font-medium">
-          Auto-NEUTRAL (Risk ≥60)
+          Auto-NEUTRAL (Risk ≥{riskHardCap})
+        </div>
+        <div className="absolute top-8 right-2 text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded font-medium">
+          Conditional (Risk ≥{riskMax})
         </div>
         <div className="absolute bottom-2 left-2 text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded font-medium">
-          Auto-NEUTRAL (Evidence &lt;50)
-        </div>
-        <div className="absolute bottom-8 right-2 text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded font-medium border border-emerald-400">
-          BUY/SELL Allowed
+          Auto-NEUTRAL (Evidence &lt;{evidenceHard})
         </div>
 
         {/* Dots */}
         {scatterData.map((d, i) => (
           <div
             key={i}
-            className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 z-10 ${
-              d.decision === 'BUY' ? 'bg-emerald-500' :
-              d.decision === 'SELL' ? 'bg-red-500' : 'bg-gray-400'
+            className={`absolute w-2.5 h-2.5 rounded-full transform -translate-x-1 -translate-y-1 z-10 ${
+              d.decision === 'BUY' ? 'bg-emerald-500 ring-1 ring-emerald-600' :
+              d.decision === 'SELL' ? 'bg-red-500 ring-1 ring-red-600' : 'bg-slate-400'
             }`}
             style={{
               left: `${d.evidence}%`,
@@ -349,19 +349,19 @@ function EvidenceRiskScatter({ decisions, loading, thresholds }) {
         ))}
 
         {/* Axis labels */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-gray-400">
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-xs text-slate-400 font-medium">
           Evidence →
         </div>
-        <div className="absolute left-0 top-1/2 transform -translate-y-1/2 -rotate-90 text-xs text-gray-400">
+        <div className="absolute left-1 top-1/2 transform -translate-y-1/2 -rotate-90 text-xs text-slate-400 font-medium">
           ← Risk
         </div>
       </div>
 
       {/* Zone stats */}
       <div className="grid grid-cols-3 gap-2 mt-4">
-        <div className="text-center p-2 bg-emerald-50 rounded border border-emerald-200">
-          <p className="text-lg font-semibold text-emerald-600">{zones.safe.length}</p>
-          <p className="text-xs text-gray-500">BUY/SELL Zone</p>
+        <div className="text-center p-2 bg-teal-50 rounded border border-teal-200">
+          <p className="text-lg font-semibold text-teal-600">{zones.safe.length}</p>
+          <p className="text-xs text-gray-500">Decision Gate Zone</p>
         </div>
         <div className="text-center p-2 bg-red-50 rounded">
           <p className="text-lg font-semibold text-red-600">{zones.risky.length}</p>
@@ -373,10 +373,15 @@ function EvidenceRiskScatter({ decisions, loading, thresholds }) {
         </div>
       </div>
 
-      {/* Explanation */}
-      <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-500">
-        <Info className="w-3 h-3 inline mr-1" />
-        Engine physically cannot issue BUY/SELL outside the green zone (dashed border)
+      {/* Explanation with thresholds */}
+      <div className="mt-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+        <p className="text-xs text-slate-600 font-medium mb-1">Decision Gate Rules (from Engine v1.1)</p>
+        <p className="text-xs text-slate-500">
+          BUY/SELL requires: Evidence ≥{evidenceMin}, Risk &lt;{riskMax}, Coverage ≥60%, No conflicts
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
+          Points outside the Decision Gate are automatically NEUTRAL by design.
+        </p>
       </div>
     </div>
   );

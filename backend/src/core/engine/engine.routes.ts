@@ -30,6 +30,13 @@ import {
 } from './engine_kpi.service.js';
 import { extractFeatures, getFeatureNames } from './engine_feature_extractor.js';
 import { calculateMLScoring, getMLConfig, setMLEnabled } from './engine_ml_scoring.js';
+import { 
+  runShadowComparison, 
+  calculateShadowKPIs, 
+  getShadowConfig, 
+  setShadowEnabled,
+  SHADOW_CONFIG 
+} from './engine_shadow.service.js';
 
 // Feature flag for v1.1
 const USE_ENGINE_V1_1 = true;

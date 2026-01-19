@@ -1,14 +1,24 @@
 /**
- * Engine Routes (Sprint 4)
+ * Engine Routes (Sprint 4 → v1.1)
  * 
- * API endpoints for Engine v1
+ * API endpoints for Engine v1.1
+ * 
+ * v1.1 Changes:
+ * - Stricter thresholds
+ * - Penalty weights
+ * - Conflict detection
+ * - Better explainability
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { buildEngineInput, buildEngineInputForActor } from './engine_input.service.js';
 import { generateDecision } from './engine_decision.service.js';
+import { generateDecisionV1_1, ENGINE_CONFIG } from './engine_decision_v1_1.service.js';
 import { EngineDecisionModel } from './engine_decision.model.js';
 import { parseWindow, TimeWindow } from '../common/window.service.js';
 import { buildEnvelope, buildErrorEnvelope } from '../common/analysis_envelope.js';
+
+// Feature flag for v1.1
+const USE_ENGINE_V1_1 = true;
 
 export async function engineRoutes(app: FastifyInstance): Promise<void> {
   

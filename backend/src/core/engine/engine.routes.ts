@@ -287,9 +287,34 @@ export async function engineRoutes(app: FastifyInstance): Promise<void> {
           helpful: feedbackStats.find((f: any) => f._id === true)?.count || 0,
           notHelpful: feedbackStats.find((f: any) => f._id === false)?.count || 0,
         },
+        engineVersion: USE_ENGINE_V1_1 ? ENGINE_CONFIG.version : 'v1.0',
       },
     };
   });
   
-  app.log.info('Engine routes registered (Sprint 4 - Engine v1)');
+  /**
+   * GET /api/engine/config
+   * Get engine v1.1 configuration (for transparency)
+   */
+  app.get('/engine/config', async () => {
+    return {
+      ok: true,
+      data: {
+        version: ENGINE_CONFIG.version,
+        activeEngine: USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0',
+        thresholds: {
+          evidence: ENGINE_CONFIG.evidence,
+          coverage: ENGINE_CONFIG.coverage,
+          direction: ENGINE_CONFIG.direction,
+          risk: ENGINE_CONFIG.risk,
+        },
+        penalties: ENGINE_CONFIG.penalties,
+        conflicts: ENGINE_CONFIG.conflicts,
+        stability: ENGINE_CONFIG.stability,
+        explainability: ENGINE_CONFIG.explainability,
+      },
+    };
+  });
+  
+  app.log.info(`Engine routes registered (Engine ${USE_ENGINE_V1_1 ? 'v1.1' : 'v1.0'})`);
 }

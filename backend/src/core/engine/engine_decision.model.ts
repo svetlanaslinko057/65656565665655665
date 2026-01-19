@@ -73,6 +73,10 @@ const EngineDecisionSchema = new mongoose.Schema({
       signals: Number,
       overall: Number,
     },
+    // v1.1 additions
+    distinctSources: Number,
+    conflictsDetected: [String],
+    penaltiesApplied: [String],
   },
   
   // References (for joining)

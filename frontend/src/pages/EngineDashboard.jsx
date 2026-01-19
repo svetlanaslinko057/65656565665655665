@@ -764,6 +764,7 @@ export default function EngineDashboard() {
   const [kpi, setKpi] = useState(null);
   const [shadowKpi, setShadowKpi] = useState(null);
   const [decisions, setDecisions] = useState([]);
+  const [engineConfig, setEngineConfig] = useState(null);
   const [error, setError] = useState(null);
   const [period, setPeriod] = useState('7');
 
@@ -772,10 +773,11 @@ export default function EngineDashboard() {
     setError(null);
     
     try {
-      const [kpiRes, shadowRes, decisionsRes] = await Promise.all([
+      const [kpiRes, shadowRes, decisionsRes, configRes] = await Promise.all([
         api.get(`/api/engine/kpi?days=${period}`),
         api.get(`/api/engine/shadow/kpi?days=${period}`),
         api.get('/api/engine/decisions?limit=100'),
+        api.get('/api/engine/config'),
       ]);
 
       if (kpiRes.data.ok) setKpi(kpiRes.data.data);

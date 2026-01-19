@@ -132,14 +132,23 @@ export default function EnginePage() {
         <main className="max-w-4xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Brain className="w-6 h-6 text-purple-600" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Brain className="w-6 h-6 text-purple-600" />
+                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Decision Engine</h1>
+                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
+                  v1.1
+                </span>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">Decision Engine</h1>
-              <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
-                v1.0
-              </span>
+              <Link
+                to="/engine/dashboard"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                <Shield className="w-4 h-4" />
+                Dashboard
+              </Link>
             </div>
             <p className="text-gray-500">
               Rule-based decision layer. Analyzes contexts, signals, and actors to generate explainable decisions.

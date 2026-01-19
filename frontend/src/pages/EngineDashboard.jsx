@@ -1,23 +1,23 @@
 /**
- * Engine Dashboard v1
+ * Engine Dashboard v1.05
  * 
  * Quality Control Dashboard - НЕ trading UI
  * 
- * Показывает:
- * 1. Decision Distribution (BUY/SELL/NEUTRAL)
- * 2. Coverage Gating (блокировки по coverage)
- * 3. Evidence vs Risk Scatter
- * 4. Flip-rate Timeline
- * 5. Shadow Agreement (v1.1 vs v2)
+ * v1.05 Улучшения:
+ * 1. Engine Health Banner → DATA COLLECTION status (info, не warning)
+ * 2. Evidence vs Risk → Decision Gate Overlay
+ * 3. Stability → Tooltip для median lifespan = 0h
+ * 4. Simulation Controls → Блок с кнопками симуляции
  * 
- * НЕ показывает: price, pnl, candles, performance
+ * НЕ показывает: price, pnl, candles, performance, accuracy, win rate
  */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   BarChart3, Shield, Target, Activity, GitCompare,
   RefreshCw, Loader2, AlertTriangle, CheckCircle, XCircle,
-  TrendingUp, TrendingDown, Minus, Info, Zap
+  TrendingUp, TrendingDown, Minus, Info, Zap, Play, Database,
+  Shuffle, HelpCircle
 } from 'lucide-react';
 import Header from '../components/Header';
 import { api } from '../api/client';
@@ -213,7 +213,7 @@ function CoverageGating({ data, loading }) {
   );
 }
 
-// ============ EVIDENCE VS RISK SCATTER (simplified) ============
+// ============ EVIDENCE VS RISK SCATTER WITH DECISION GATE OVERLAY ============
 function EvidenceRiskScatter({ decisions, loading }) {
   if (loading) {
     return (
@@ -248,12 +248,12 @@ function EvidenceRiskScatter({ decisions, loading }) {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Target className="w-5 h-5 text-orange-600" />
-          <h3 className="font-semibold">Evidence vs Risk Distribution</h3>
+          <h3 className="font-semibold">Evidence vs Risk with Decision Gates</h3>
         </div>
         <span className="text-sm text-gray-500">{scatterData.length} decisions</span>
       </div>
 
-      {/* Simple visualization */}
+      {/* Simple visualization with Decision Gate Overlay */}
       <div className="relative h-48 bg-gray-50 rounded-lg overflow-hidden">
         {/* Grid */}
         <div className="absolute inset-0 grid grid-cols-4 grid-rows-4">
@@ -262,22 +262,58 @@ function EvidenceRiskScatter({ decisions, loading }) {
           ))}
         </div>
         
+        {/* DECISION GATE OVERLAY - BUY/SELL allowed zone */}
+        {/* BUY/SELL allowed: Evidence >= 65, Risk < 60, Coverage >= 60 */}
+        <div 
+          className="absolute bg-emerald-100/40 border-2 border-emerald-400 border-dashed"
+          style={{
+            left: '65%',
+            bottom: '40%',
+            width: '35%',
+            height: '60%',
+          }}
+          title="BUY/SELL Allowed Zone: Evidence ≥65, Risk <60"
+        />
+        
+        {/* AUTO-NEUTRAL zones overlay */}
+        {/* High Risk zone (Risk >= 60) - auto NEUTRAL */}
+        <div 
+          className="absolute bg-red-100/30"
+          style={{
+            left: '0',
+            top: '0',
+            width: '100%',
+            height: '40%',
+          }}
+        />
+        
+        {/* Low Evidence zone (Evidence < 50) - auto NEUTRAL */}
+        <div 
+          className="absolute bg-amber-100/30"
+          style={{
+            left: '0',
+            bottom: '0',
+            width: '50%',
+            height: '100%',
+          }}
+        />
+        
         {/* Zone labels */}
-        <div className="absolute top-2 right-2 text-xs text-red-500 bg-red-50 px-2 py-1 rounded">
-          High Risk Zone
+        <div className="absolute top-2 right-2 text-xs text-red-600 bg-red-100 px-2 py-1 rounded font-medium">
+          Auto-NEUTRAL (Risk ≥60)
         </div>
-        <div className="absolute bottom-2 left-2 text-xs text-amber-500 bg-amber-50 px-2 py-1 rounded">
-          Low Evidence Zone
+        <div className="absolute bottom-2 left-2 text-xs text-amber-600 bg-amber-100 px-2 py-1 rounded font-medium">
+          Auto-NEUTRAL (Evidence &lt;50)
         </div>
-        <div className="absolute bottom-2 right-2 text-xs text-emerald-500 bg-emerald-50 px-2 py-1 rounded">
-          Safe Zone
+        <div className="absolute bottom-8 right-2 text-xs text-emerald-600 bg-emerald-100 px-2 py-1 rounded font-medium border border-emerald-400">
+          BUY/SELL Allowed
         </div>
 
         {/* Dots */}
         {scatterData.map((d, i) => (
           <div
             key={i}
-            className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 ${
+            className={`absolute w-2 h-2 rounded-full transform -translate-x-1 -translate-y-1 z-10 ${
               d.decision === 'BUY' ? 'bg-emerald-500' :
               d.decision === 'SELL' ? 'bg-red-500' : 'bg-gray-400'
             }`}
@@ -300,25 +336,33 @@ function EvidenceRiskScatter({ decisions, loading }) {
 
       {/* Zone stats */}
       <div className="grid grid-cols-3 gap-2 mt-4">
-        <div className="text-center p-2 bg-emerald-50 rounded">
+        <div className="text-center p-2 bg-emerald-50 rounded border border-emerald-200">
           <p className="text-lg font-semibold text-emerald-600">{zones.safe.length}</p>
-          <p className="text-xs text-gray-500">Safe Zone</p>
+          <p className="text-xs text-gray-500">BUY/SELL Zone</p>
         </div>
         <div className="text-center p-2 bg-red-50 rounded">
           <p className="text-lg font-semibold text-red-600">{zones.risky.length}</p>
-          <p className="text-xs text-gray-500">High Risk</p>
+          <p className="text-xs text-gray-500">Auto-NEUTRAL (Risk)</p>
         </div>
         <div className="text-center p-2 bg-amber-50 rounded">
           <p className="text-lg font-semibold text-amber-600">{zones.weak.length}</p>
-          <p className="text-xs text-gray-500">Low Evidence</p>
+          <p className="text-xs text-gray-500">Auto-NEUTRAL (Evidence)</p>
         </div>
+      </div>
+
+      {/* Explanation */}
+      <div className="mt-3 p-2 bg-gray-50 rounded text-xs text-gray-500">
+        <Info className="w-3 h-3 inline mr-1" />
+        Engine physically cannot issue BUY/SELL outside the green zone (dashed border)
       </div>
     </div>
   );
 }
 
-// ============ STABILITY KPI COMPONENT ============
+// ============ STABILITY KPI COMPONENT WITH TOOLTIP ============
 function StabilityKPI({ data, loading }) {
+  const [showLifespanTooltip, setShowLifespanTooltip] = useState(false);
+
   if (loading) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -342,6 +386,8 @@ function StabilityKPI({ data, loading }) {
     if (status === 'warning') return 'bg-amber-100 text-amber-700';
     return 'bg-red-100 text-red-700';
   };
+
+  const isLifespanZero = medianDecisionLifespanHours === 0;
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -374,11 +420,33 @@ function StabilityKPI({ data, loading }) {
           <p className="text-xs text-gray-500 mt-1">Target: &lt;15%</p>
         </div>
 
-        {/* Median Lifespan */}
-        <div className="p-3 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-500">Median Decision Lifespan</p>
-          <p className="text-xl font-semibold">{medianDecisionLifespanHours.toFixed(1)}h</p>
-          <p className="text-xs text-gray-500">Target: ≥4h</p>
+        {/* Median Lifespan with Tooltip */}
+        <div className="relative">
+          <div 
+            className="p-3 bg-gray-50 rounded-lg cursor-help"
+            onMouseEnter={() => isLifespanZero && setShowLifespanTooltip(true)}
+            onMouseLeave={() => setShowLifespanTooltip(false)}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500 flex items-center gap-1">
+                Median Decision Lifespan
+                {isLifespanZero && <HelpCircle className="w-3 h-3 text-gray-400" />}
+              </p>
+            </div>
+            <p className="text-xl font-semibold">{medianDecisionLifespanHours.toFixed(1)}h</p>
+            <p className="text-xs text-gray-500">Target: ≥4h</p>
+          </div>
+          
+          {/* Tooltip for zero lifespan */}
+          {showLifespanTooltip && isLifespanZero && (
+            <div className="absolute z-20 left-0 right-0 mt-2 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-lg">
+              <p className="font-medium mb-1">Why is median lifespan zero?</p>
+              <p className="text-gray-300">
+                All decisions are currently NEUTRAL and re-evaluated continuously during data collection phase. 
+                Lifespan tracking starts when BUY/SELL decisions appear.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Changed without input */}
@@ -498,19 +566,163 @@ function ShadowAgreement({ data, loading }) {
   );
 }
 
-// ============ OVERALL HEALTH BADGE ============
-function OverallHealth({ health }) {
+// ============ SIMULATION CONTROLS COMPONENT (NEW) ============
+function SimulationControls({ onRunSimulation }) {
+  const [running, setRunning] = useState(null);
+  const [lastResult, setLastResult] = useState(null);
+
+  const runSimulation = async (type) => {
+    setRunning(type);
+    setLastResult(null);
+    
+    try {
+      let endpoint = '';
+      let body = {};
+      
+      switch (type) {
+        case 'replay':
+          endpoint = '/api/engine/simulate/replay';
+          body = { limit: 30 };
+          break;
+        case 'perturb':
+          endpoint = '/api/engine/simulate/perturb';
+          body = { actor: 'binance' };
+          break;
+        case 'montecarlo':
+          endpoint = '/api/engine/simulate/montecarlo';
+          body = { iterations: 30 };
+          break;
+      }
+      
+      const res = await api.post(endpoint, body);
+      if (res.data.ok) {
+        setLastResult(res.data.data.summary);
+        if (onRunSimulation) onRunSimulation();
+      }
+    } catch (err) {
+      console.error('Simulation error:', err);
+    } finally {
+      setRunning(null);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Play className="w-5 h-5 text-violet-600" />
+          <h3 className="font-semibold">Simulation Controls</h3>
+        </div>
+        <span className="text-xs bg-violet-100 text-violet-700 px-2 py-1 rounded">
+          Test Mode
+        </span>
+      </div>
+
+      {/* Simulation buttons */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <button
+          onClick={() => runSimulation('replay')}
+          disabled={running !== null}
+          className="flex flex-col items-center gap-2 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {running === 'replay' ? (
+            <Loader2 className="w-5 h-5 animate-spin text-violet-600" />
+          ) : (
+            <Database className="w-5 h-5 text-violet-600" />
+          )}
+          <span className="text-sm font-medium">Historical Replay</span>
+          <span className="text-xs text-gray-500">All actors × windows</span>
+        </button>
+        
+        <button
+          onClick={() => runSimulation('perturb')}
+          disabled={running !== null}
+          className="flex flex-col items-center gap-2 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {running === 'perturb' ? (
+            <Loader2 className="w-5 h-5 animate-spin text-orange-600" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-orange-600" />
+          )}
+          <span className="text-sm font-medium">Stress Test</span>
+          <span className="text-xs text-gray-500">Perturbations</span>
+        </button>
+        
+        <button
+          onClick={() => runSimulation('montecarlo')}
+          disabled={running !== null}
+          className="flex flex-col items-center gap-2 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {running === 'montecarlo' ? (
+            <Loader2 className="w-5 h-5 animate-spin text-cyan-600" />
+          ) : (
+            <Shuffle className="w-5 h-5 text-cyan-600" />
+          )}
+          <span className="text-sm font-medium">Monte Carlo</span>
+          <span className="text-xs text-gray-500">Random features</span>
+        </button>
+      </div>
+
+      {/* Last result */}
+      {lastResult && (
+        <div className="p-3 bg-gray-50 rounded-lg mb-3">
+          <p className="text-sm font-medium mb-2">Last Simulation Result:</p>
+          <div className="grid grid-cols-3 gap-2 text-center text-sm">
+            <div>
+              <p className="font-semibold text-gray-500">{lastResult.neutral}</p>
+              <p className="text-xs text-gray-400">NEUTRAL</p>
+            </div>
+            <div>
+              <p className="font-semibold text-emerald-600">{lastResult.buy}</p>
+              <p className="text-xs text-gray-400">BUY</p>
+            </div>
+            <div>
+              <p className="font-semibold text-red-600">{lastResult.sell}</p>
+              <p className="text-xs text-gray-400">SELL</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Disclaimer */}
+      <div className="p-2 bg-amber-50 rounded text-xs text-amber-700 flex items-start gap-2">
+        <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <span>Simulated decisions do not affect production KPIs. Use for testing decision rules and boundaries.</span>
+      </div>
+    </div>
+  );
+}
+
+// ============ OVERALL HEALTH BADGE (UPDATED FOR v1.05) ============
+function OverallHealth({ health, coverage }) {
+  // v1.05: Replace "Warning" with "DATA COLLECTION" status for low coverage
+  const isDataCollection = coverage && coverage < 50;
+  
+  if (isDataCollection) {
+    return (
+      <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-blue-50 border border-blue-200">
+        <Database className="w-5 h-5 text-blue-600" />
+        <div>
+          <span className="font-semibold text-blue-700">Engine Status: DATA COLLECTION</span>
+          <p className="text-sm text-blue-600 mt-0.5">
+            Coverage below decision threshold ({coverage?.toFixed(0) || 0}% / 60%). Engine operating in protection mode.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   const config = {
-    healthy: { bg: 'bg-emerald-100', text: 'text-emerald-700', icon: CheckCircle, label: 'Healthy' },
-    warning: { bg: 'bg-amber-100', text: 'text-amber-700', icon: AlertTriangle, label: 'Warning' },
-    critical: { bg: 'bg-red-100', text: 'text-red-700', icon: XCircle, label: 'Critical' },
+    healthy: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', icon: CheckCircle, label: 'Healthy' },
+    warning: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', icon: AlertTriangle, label: 'Warning' },
+    critical: { bg: 'bg-red-50 border-red-200', text: 'text-red-700', icon: XCircle, label: 'Critical' },
   };
 
   const c = config[health] || config.warning;
   const Icon = c.icon;
 
   return (
-    <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${c.bg}`}>
+    <div className={`flex items-center gap-2 px-4 py-3 rounded-lg border ${c.bg}`}>
       <Icon className={`w-5 h-5 ${c.text}`} />
       <span className={`font-semibold ${c.text}`}>Engine Health: {c.label}</span>
     </div>
@@ -550,6 +762,9 @@ export default function EngineDashboard() {
   useEffect(() => {
     fetchData();
   }, [period]);
+
+  // Calculate average coverage for health banner
+  const avgCoverage = kpi?.coverage?.avgCoverageNeutral || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -601,10 +816,10 @@ export default function EngineDashboard() {
           </div>
         </div>
 
-        {/* Overall health */}
+        {/* Overall health - v1.05: DATA COLLECTION status */}
         {kpi && (
           <div className="mb-6">
-            <OverallHealth health={kpi.overallHealth} />
+            <OverallHealth health={kpi.overallHealth} coverage={avgCoverage} />
           </div>
         )}
 
@@ -625,10 +840,11 @@ export default function EngineDashboard() {
           <EvidenceRiskScatter decisions={decisions} loading={loading} />
           <StabilityKPI data={kpi?.stability} loading={loading} />
           
-          {/* Row 3 - Full width */}
-          <div className="lg:col-span-2">
-            <ShadowAgreement data={shadowKpi} loading={loading} />
-          </div>
+          {/* Row 3 - Simulation Controls (NEW) */}
+          <SimulationControls onRunSimulation={fetchData} />
+          
+          {/* Shadow Agreement */}
+          <ShadowAgreement data={shadowKpi} loading={loading} />
         </div>
 
         {/* Engine Info */}

@@ -14,7 +14,7 @@ import { generateDecisionV1_1 } from './engine_decision_v1_1.service.js';
 import { buildEngineInputForActor, buildEngineInput } from './engine_input.service.js';
 import { runShadowComparison } from './engine_shadow.service.js';
 import { extractFeatures } from './engine_feature_extractor.js';
-import { EntityModel } from '../entities/entity.model.js';
+import { EntityModel } from '../entities/entities.model.js';
 import { SignalContextModel } from '../signals/signal_context.model.js';
 import { parseWindow, TimeWindow } from '../common/window.service.js';
 
